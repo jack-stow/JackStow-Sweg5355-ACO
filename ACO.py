@@ -25,7 +25,7 @@ class AntColony:
     """
     Class implementing the Ant Colony Optimization (ACO) algorithm for solving the TSP.
     """
-    def __init__(self, distance_matrix, n_ants, n_best, n_iterations, decay, alpha=1, beta=1):
+    def __init__(self, distance_matrix, n_ants, n_best, n_iterations, decay, alpha=1, beta=1, verbose=0):
         """
         Initialize the ACO parameters and data structures.
 
@@ -39,26 +39,21 @@ class AntColony:
         - beta: Heuristic importance factor.
         """
         self.distance_matrix = distance_matrix
-        self.pheromone_matrix = np.ones_like(distance_matrix, dtype=float)  # Initial pheromone levels
         self.n_ants = n_ants
+        # The code snippet is setting the value of the variable `self.n_best` to the value of the
+        # variable `n_best`.
         self.n_best = n_best
         self.n_iterations = n_iterations
         self.decay = decay
         self.alpha = alpha
         self.beta = beta
         self.pheromone = np.ones(distance_matrix.shape, dtype=float) / len(distance_matrix)  # Normalized pheromones
+        self.pheromone_history = []
+        self.pheromone_history.append(self.pheromone)
         self.best_path = None  # Best path found
         self.best_distance = float('inf')  # Best distance found (initialize to infinity)
         self.paths_history = []  # History of paths generated
-
-    def get_pheromone_level(self, path):
-        """
-        Get the minimum pheromone level along the given path.
-        """
-        pheromone_strengths = [
-            self.pheromone_matrix[path[i], path[i + 1]] for i in range(len(path) - 1)
-        ]
-        return min(pheromone_strengths)
+        self.verbose = verbose
 
     def run(self):
         """
@@ -66,9 +61,18 @@ class AntColony:
         """
         for iteration in range(self.n_iterations):
             all_paths = self.gen_all_paths()  # Generate paths for all ants
+            
+            # Ensure all paths are valid (visit all nodes exactly once)
+            for path in all_paths:
+                assert len(set(path)) == len(path), f"Path has repeated nodes: {path}"
+
+            
             self.paths_history.append(all_paths)  # Save paths for visualization
             self.best_path, self.best_distance = self.spread_pheromone(all_paths, self.best_path, self.best_distance)
             self.pheromone *= self.decay  # Apply pheromone evaporation
+            self.pheromone_history.append(self.pheromone)
+            if self.verbose > 0:
+                print(f"Pheromone Matrix (after):\n{self.pheromone}")
 
         return self.best_path, self.best_distance
 
@@ -81,9 +85,16 @@ class AntColony:
             if distance < best_distance:  # Update best path if a shorter one is found
                 best_distance = distance
                 best_path = path
+                if self.verbose > 0:
+                    print(f"New best path found: {path} with distance: {distance}")
+
             
             for i in range(len(path) - 1):  # Add pheromone to the edges in the path
                 self.pheromone[path[i], path[i + 1]] += 1.0 / distance
+
+        if self.verbose > 0:
+            print(f"Path: {path}, Distance: {distance}")
+            print(f"Pheromone Matrix (before):\n{self.pheromone}")
 
         return best_path, best_distance
 
@@ -133,6 +144,9 @@ class AntColony:
         pheromone[visited_indices] = 0  # Exclude visited nodes
         heuristic = 1 / (self.distance_matrix[current_node] + 1e-10)  # Heuristic: inverse of distance
         probabilities = (pheromone ** self.alpha) * (heuristic ** self.beta)  # Combine pheromone and heuristic factors
+        if self.verbose > 0:
+            print(f"Current Node: {current_node}, Probabilities: {probabilities}")
+
         return probabilities / probabilities.sum()
 
 # Visualization Function
@@ -237,7 +251,7 @@ def calculate_distance(distance_matrix, path):
 
 
 # Example usage
-num_nodes = 35  # Keep this small for brute force
+num_nodes = 10  # Keep this small for brute force
 # distance_matrix = np.loadtxt('distance_matrix.txt', delimiter=',')#generate_distance_matrix(num_nodes)
 distance_matrix = generate_distance_matrix(num_nodes)
 print(distance_matrix)
@@ -246,7 +260,7 @@ print(f"Distance matrix saved as distance_matrix-{num_nodes}-nodes.txt")
 
 # Measure time for ACO
 start_time = time.time()
-aco = AntColony(distance_matrix, n_ants=20, n_best=10, n_iterations=200, decay=0.95, alpha=1, beta=2)
+aco = AntColony(distance_matrix, n_ants=50, n_best=1, n_iterations=500, decay=0.9, alpha=1, beta=2, verbose=0)
 aco_best_path, best_distance = aco.run()
 aco_duration = time.time() - start_time
 aco_distance = calculate_distance(distance_matrix, aco_best_path)
@@ -254,6 +268,11 @@ print("ACO Best path:", aco_best_path)
 print("ACO Best distance:", aco_distance)
 print(f"ACO Duration: {aco_duration:.4f} seconds")
 print("ACO History Length:", len(aco.paths_history))
+i = 0
+for pheromone_matrix in aco.pheromone_history:
+    print(f"Pheromone matrix {i}:\n{pheromone_matrix}")
+    i += 1
+
 
 
 # Measure time for brute-force TSP
@@ -426,5 +445,46 @@ def animate_best_path(aco, interval):
     ani = FuncAnimation(fig, update, frames=num_edges, repeat=False, interval=interval)
     plt.show()
 
+def animate_pheromone_history(aco):
+    """
+    Animate the evolution of the pheromone matrix during the ACO process.
+    Parameters:
+        aco (AntColony): The Ant Colony instance containing the pheromone history.
+    """
+    # Create a graph from the distance matrix
+    G = nx.from_numpy_array(aco.distance_matrix)
+    pos = nx.spring_layout(G, seed=NETWORK_SEED)  # Fixed layout for consistency
+
+    fig, ax = plt.subplots(figsize=(10, 8))
+
+    # Function to update the graph at each frame
+    def update(frame):
+        ax.clear()
+        ax.set_title(f'Pheromone Levels - Iteration {frame}')
+        pheromone_matrix = aco.pheromone_history[frame]
+        max_pheromone = np.max(pheromone_matrix)
+        min_pheromone = np.min(pheromone_matrix)
+
+        # Normalize pheromone levels for coloring
+        norm = Normalize(vmin=min_pheromone, vmax=max_pheromone)
+
+        # Draw nodes
+        nx.draw_networkx_nodes(G, pos, node_size=700, node_color='lightblue', ax=ax)
+        nx.draw_networkx_labels(G, pos, font_size=12, font_color="black", font_weight="bold", ax=ax)
+
+        # Draw edges with colors based on pheromone levels
+        for i, j in G.edges:
+            pheromone_strength = pheromone_matrix[i, j]
+            color = cm.rainbow(norm(pheromone_strength))  # Map pheromone strength to a rainbow color
+            ax.plot([pos[i][0], pos[j][0]], [pos[i][1], pos[j][1]],
+                    color=color, linewidth=2, alpha=0.8)
+
+    # Create animation
+    ani = FuncAnimation(fig, update, frames=len(aco.pheromone_history), interval=500, repeat=True)
+
+    plt.show()
+
+
 # Run the animated visualizer
-animate_best_path(aco, interval=500)
+#animate_best_path(aco, interval=500)
+animate_pheromone_history(aco)
