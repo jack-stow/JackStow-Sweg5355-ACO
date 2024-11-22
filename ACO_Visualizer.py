@@ -201,7 +201,7 @@ def animate_best_path(aco, interval):
     ani = FuncAnimation(fig, update, frames=num_edges, repeat=False, interval=interval) #type: ignore
     plt.show()
 
-def animate_pheromone_history(aco, interval=1):
+def animate_pheromone_history(aco, interval=1, step=1):
     """
     Visualizes the pheromone history of the Ant Colony Optimization algorithm as an animation.
 
@@ -240,22 +240,24 @@ def animate_pheromone_history(aco, interval=1):
             color = cmap(pheromone_normalized)  # Map pheromone strength to color
             ax.plot([pos[u][0], pos[v][0]], 
                     [pos[u][1], pos[v][1]], 
-                    color=color, linewidth=5*max(.1, pheromone_normalized), alpha=0.8)
+                    color=color, linewidth=5*pheromone_normalized, alpha=0.8)
         
         # Set title for the current iteration
         ax.set_title(f'Pheromone Evolution - Iteration {frame}')
         ax.axis('off')  # Hide axes
 
-    # Generate the frames, skipping iterations based on the interval argument
-    frames = list(range(0, len(aco.pheromone_history), interval))
+    # Generate the frames, skipping iterations based on the step argument
+    frames = list(range(0, len(aco.pheromone_history), step))
+    if frames[-1] != len(aco.pheromone_history) - 1:
+        frames.append(len(aco.pheromone_history) - 1)
 
     # Create the animation
-    ani = FuncAnimation(fig, update, frames=frames, interval=100, repeat=False) #type: ignore
+    ani = FuncAnimation(fig, update, frames=frames, interval=interval, repeat=False) #type: ignore
     
     # Show the animation
     plt.show()
 
-def animate_paths_history(aco, interval):
+def animate_paths_history(aco, step=1, interval=100):
     """
     Animates the history of paths discovered by the Ant Colony Optimization algorithm.
 
@@ -304,6 +306,10 @@ def animate_paths_history(aco, interval):
         path_distance = aco.calculate_distance(path)
         ax.set_title(f'Path {frame+1}/{len(aco.paths_history)} - Distance: {path_distance:.2f}')
 
+    frames = list(range(0, len(aco.paths_history), step))
+    if frames[-1] != len(aco.paths_history) - 1:
+        frames.append(len(aco.paths_history) - 1)
+    
     # Create animation
-    ani = FuncAnimation(fig, update, frames=len(aco.paths_history), interval=interval, repeat=False) #type: ignore
+    ani = FuncAnimation(fig, update, frames=frames, interval=interval, repeat=False) #type: ignore
     plt.show()
