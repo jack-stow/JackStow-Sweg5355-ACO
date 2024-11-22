@@ -39,7 +39,7 @@ def visualize_aco(aco, path_index=0):
                 end_node = path[i + 1]
                 pheromone_strength = aco.pheromone_matrix[start_node, end_node]
                 norm_strength = np.clip(pheromone_strength / max_pheromone_value, 0, 1)
-                color = cm.plasma(norm_strength)
+                color = cm.plasma(norm_strength) #type: ignore
 
                 ax.plot([pos[start_node][0], pos[end_node][0]], 
                         [pos[start_node][1], pos[end_node][1]], 
@@ -96,7 +96,7 @@ def animate_aco_paths(aco, interval):
         # Adding title and iteration number
         ax.set_title(f'Ant Colony Optimization - Iteration {frame + 1}/{len(aco.paths_history)}')
 
-    ani = FuncAnimation(fig, update, frames=len(aco.paths_history), repeat=False, interval=interval)
+    ani = FuncAnimation(fig, update, frames=len(aco.paths_history), repeat=False, interval=interval) #type: ignore
     plt.show()
     plt.show()
 
@@ -198,7 +198,7 @@ def animate_best_path(aco, interval):
         # Add title with current frame number
         ax.set_title(f'ACO Path Animation - Step {frame + 1}/{num_edges}')
 
-    ani = FuncAnimation(fig, update, frames=num_edges, repeat=False, interval=interval)
+    ani = FuncAnimation(fig, update, frames=num_edges, repeat=False, interval=interval) #type: ignore
     plt.show()
 
 def animate_pheromone_history(aco, interval=1):
@@ -221,7 +221,7 @@ def animate_pheromone_history(aco, interval=1):
     norm = Normalize(vmin=0, vmax=max_pheromone_value)
     
     # Create a colormap (using a rainbow colormap)
-    cmap = cm.rainbow
+    cmap = cm.rainbow #type: ignore
     
     def update(frame):
         ax.clear()  # Clear the previous plot
@@ -249,11 +249,10 @@ def animate_pheromone_history(aco, interval=1):
     frames = list(range(0, len(aco.pheromone_history), interval))
 
     # Create the animation
-    ani = FuncAnimation(fig, update, frames=frames, interval=100, repeat=False)
+    ani = FuncAnimation(fig, update, frames=frames, interval=100, repeat=False) #type: ignore
     
     # Show the animation
     plt.show()
-
 
 def animate_paths_history(aco, interval):
     """
@@ -262,55 +261,48 @@ def animate_paths_history(aco, interval):
     Parameters:
         aco (AntColony): The Ant Colony instance containing paths and distance matrix.
         interval (int): Time interval between frames in milliseconds.
-
-    Functionality:
-        - Creates an animation of all paths being constructed step by step.
-        - Highlights each edge in each path sequentially with a color gradient.
-        - Updates the graph frame by frame with edges being drawn up to the current step.
     """
     G = nx.from_numpy_array(aco.distance_matrix)
     fig, ax = plt.subplots(figsize=(10, 8))
-    pos = nx.spring_layout(G, seed=NETWORK_SEED)
-    nx.draw_networkx_nodes(G, pos, node_size=700, node_color='lightblue', ax=ax)
-    nx.draw_networkx_labels(G, pos, font_size=12, font_color="black", font_weight="bold", ax=ax)
-    plt.axis('off')
-
-    # Define colormap for gradient (using rainbow spectrum)
-    cmap = plt.get_cmap("rainbow")
-    max_steps = max(len(path) for path in aco.paths_history)  # Maximum number of steps in any path
+    pos = nx.spring_layout(G, seed=42)  # Fixed seed for consistent layout
     
-    # Generate a continuous color spectrum for the entire animation (all paths)
-    colors = cmap(np.linspace(0, 1, max_steps))  # Generate a continuous color gradient across all steps
+    # Use rainbow colormap from red (first edge) to violet (last edge)
+    cmap = plt.get_cmap("rainbow")
 
     def update(frame):
         ax.clear()
+        plt.axis('off')
+        
+        # Draw nodes
         nx.draw_networkx_nodes(G, pos, node_size=700, node_color='lightblue', ax=ax)
         nx.draw_networkx_labels(G, pos, font_size=12, font_color="black", font_weight="bold", ax=ax)
 
-        # Draw edges up to the current frame for each path
-        for path_idx, path in enumerate(aco.paths_history):
-            for i in range(frame + 1):  # Up to current step in the path
-                start_node = path[i]
-                end_node = path[(i + 1) % len(path)]  # Wrap around to form a cycle
+        # Select current path
+        path = aco.paths_history[frame]
 
-                # Check if start_node or end_node is a numpy array and extract scalar or index
-                if isinstance(start_node, np.ndarray):
-                    start_node = start_node[0] if start_node.size > 1 else start_node.item()  # Get the scalar value
-                if isinstance(end_node, np.ndarray):
-                    end_node = end_node[0] if end_node.size > 1 else end_node.item()
+        # Draw path edges with color gradient
+        for i in range(len(path)):
+            start_node = path[i]
+            end_node = path[(i + 1) % len(path)]  # Wrap around to form a cycle
 
-                # Use the color from the continuous spectrum based on the current step
-                color = colors[i]  # Get the color for this step (across all paths)
+            # Ensure we're working with scalar node indices
+            start_node = start_node[0] if isinstance(start_node, np.ndarray) else start_node
+            end_node = end_node[0] if isinstance(end_node, np.ndarray) else end_node
 
-                ax.plot(
-                    [pos[start_node][0], pos[end_node][0]],
-                    [pos[start_node][1], pos[end_node][1]],
-                    color=color, linewidth=2, zorder=0
-                )
+            # Color edges across the entire path spectrum
+            edge_color = cmap(i / (len(path) - 1))
 
-        # Add title with current frame number
-        ax.set_title(f'ACO Path Animation - Step {frame + 1}/{max_steps}')
+            # Draw edge
+            ax.plot(
+                [pos[start_node][0], pos[end_node][0]],
+                [pos[start_node][1], pos[end_node][1]],
+                color=edge_color, linewidth=3, zorder=0
+            )
 
-    ani = FuncAnimation(fig, update, frames=max_steps, repeat=False, interval=interval)
+        # Add informative title
+        path_distance = aco.calculate_distance(path)
+        ax.set_title(f'Path {frame+1}/{len(aco.paths_history)} - Distance: {path_distance:.2f}')
+
+    # Create animation
+    ani = FuncAnimation(fig, update, frames=len(aco.paths_history), interval=interval, repeat=False) #type: ignore
     plt.show()
-

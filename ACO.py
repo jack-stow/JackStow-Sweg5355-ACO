@@ -7,7 +7,7 @@ import itertools  # For generating permutations (used in brute-force TSP)
 import time  # For measuring execution time
 from matplotlib.colors import Normalize  # For normalizing color values
 from matplotlib.animation import FuncAnimation  # For creating animations
-from ACO_Visualizer import animate_paths_history, animate_best_path, animate_pheromone_history
+from ACO_Visualizer import animate_paths_history, animate_best_path, animate_pheromone_history, visualize_solution_path
 
 
 # Generate a random distance matrix for the Traveling Salesman Problem (TSP)
@@ -66,7 +66,7 @@ class AntColony:
                 assert len(set(path)) == len(path), f"Path has repeated nodes: {path}"
 
             
-            self.paths_history.append(np.copy(all_paths))  # Save paths for visualization
+            #self.paths_history.append(np.copy(all_paths))  # Save paths for visualization
             self.best_path, self.best_distance = self.spread_pheromone(all_paths, self.best_path, self.best_distance)
             self.pheromone *= self.decay  # Apply pheromone evaporation
             self.pheromone_history.append(np.copy(self.pheromone))
@@ -79,21 +79,22 @@ class AntColony:
         """
         Update pheromone levels based on the paths generated in the current iteration.
         """
-        for path in all_paths:
+        # Sort paths by distance
+        sorted_paths = sorted(all_paths, key=lambda path: self.calculate_distance(path))
+        
+        self.paths_history.append(np.copy(sorted_paths[0]))
+        
+        # Only consider the n_best paths
+        for path in sorted_paths[:self.n_best]:
             distance = self.calculate_distance(path)
-            if distance < best_distance:  # Update best path if a shorter one is found
+            
+            if distance < best_distance:
                 best_distance = distance
                 best_path = path
-                if self.verbose > 0:
-                    print(f"New best path found: {path} with distance: {distance}")
-
             
-            for i in range(len(path) - 1):  # Add pheromone to the edges in the path
+            # Add pheromone to the edges in the path
+            for i in range(len(path) - 1):
                 self.pheromone[path[i], path[i + 1]] += 1.0 / distance
-
-        if self.verbose > 0:
-            print(f"Path: {path}, Distance: {distance}")
-            print(f"Pheromone Matrix (before):\n{self.pheromone}")
 
         return best_path, best_distance
 
@@ -184,7 +185,7 @@ def brute_force_tsp(distance_matrix):
             best_distance = distance
             tsp_best_path = perm
     
-    return list(tsp_best_path), best_distance
+    return list(tsp_best_path), best_distance #type: ignore
 
 
 def calculate_distance(distance_matrix, path):
@@ -207,27 +208,24 @@ def calculate_distance(distance_matrix, path):
     return distance
 
 
-
-
-
 # Example usage
-num_nodes = 5  # Keep this small for brute force
+num_nodes = 10  # Keep this small for brute force
 # distance_matrix = np.loadtxt('distance_matrix.txt', delimiter=',')#generate_distance_matrix(num_nodes)
 distance_matrix = generate_distance_matrix(num_nodes)
-print(distance_matrix)
+#print(distance_matrix)
 np.savetxt(f'output/distance_matrix-{num_nodes}-nodes.txt', distance_matrix, fmt='%d', delimiter=',')
 print(f"Distance matrix saved as distance_matrix-{num_nodes}-nodes.txt")
 
 # Measure time for ACO
 start_time = time.time()
-aco = AntColony(distance_matrix, n_ants=10, n_best=5, n_iterations=100, decay=0.95, alpha=1, beta=1, verbose=0)
+aco = AntColony(distance_matrix, n_ants=5, n_best=2, n_iterations=50, decay=0.95, alpha=1, beta=1, verbose=0)
 aco_best_path, best_distance = aco.run()
 aco_duration = time.time() - start_time
 aco_distance = calculate_distance(distance_matrix, aco_best_path)
 print("ACO Best path:", aco_best_path)
 print("ACO Best distance:", aco_distance)
 print(f"ACO Duration: {aco_duration:.4f} seconds")
-print("ACO History Length:", len(aco.paths_history))
+#print("ACO History Length:", len(aco.paths_history))
 # i = 0
 # for pheromone_matrix in aco.pheromone_history:
 #     print(f"Pheromone matrix {i}:\n{pheromone_matrix}")
@@ -262,7 +260,9 @@ print("ACO History Length:", len(aco.paths_history))
 
 # Run the animated visualizer
 animate_pheromone_history(aco, interval=1)
-animate_best_path(aco, interval=500)
-print(aco.pheromone_history[0])
-print(aco.pheromone_history[len(aco.pheromone_history)-1])
-animate_paths_history(aco, interval=500)
+animate_best_path(aco, interval=100)
+#print(aco.pheromone_history[0])
+#print(aco.pheromone_history[len(aco.pheromone_history)-1])
+animate_paths_history(aco, interval=250)
+print(aco.paths_history)
+#print(aco.paths_history[len(aco.paths_history)-1])
