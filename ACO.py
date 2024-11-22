@@ -1,17 +1,18 @@
 import numpy as np  # For numerical operations
 import random  # For generating random numbers
 import matplotlib.pyplot as plt  # For visualization
-import networkx as nx  # For creating and visualizing graphs
+#import networkx as nx  # For creating and visualizing graphs
 import matplotlib.cm as cm  # For colormaps in visualizations
 import itertools  # For generating permutations (used in brute-force TSP)
 import time  # For measuring execution time
 from matplotlib.colors import Normalize  # For normalizing color values
-from matplotlib.animation import FuncAnimation  # For creating animations
+from matplotlib.animation import FuncAnimation
+from sympy import false  # For creating animations
 from ACO_Visualizer import animate_paths_history, animate_best_path, animate_pheromone_history, visualize_solution_path
 
 
 # Generate a random distance matrix for the Traveling Salesman Problem (TSP)
-def generate_distance_matrix(num_nodes):
+def generate_distance_matrix(num_nodes) -> np.ndarray: 
     """
     Creates a symmetric distance matrix where each entry represents the distance
     between two nodes, and the diagonal entries are zero (distance to itself).
@@ -207,62 +208,50 @@ def calculate_distance(distance_matrix, path):
     distance += distance_matrix[path[-1], path[0]]  # Return to the starting node
     return distance
 
+def ACO_demo(distance_matrix=None, num_nodes=20, n_ants=10, n_best=2, n_iterations=100, decay=0.5, alpha=2, beta=3, verbose=0, visualize=True, bruteforce=False):
+    # Example usage
+    #num_nodes = 20  # Keep this small for brute force
+    # distance_matrix = np.loadtxt('distance_matrix.txt', delimiter=',')#generate_distance_matrix(num_nodes)
+    print("=================")
+    if distance_matrix is None:
+        distance_matrix = generate_distance_matrix(num_nodes)
+    #print(distance_matrix)
+    np.savetxt(f'output/distance_matrix-{num_nodes}-nodes.txt', distance_matrix, fmt='%d', delimiter=',')
+    print(f"Distance matrix saved as distance_matrix-{num_nodes}-nodes.txt")
 
-# Example usage
-num_nodes = 10  # Keep this small for brute force
-# distance_matrix = np.loadtxt('distance_matrix.txt', delimiter=',')#generate_distance_matrix(num_nodes)
-distance_matrix = generate_distance_matrix(num_nodes)
-#print(distance_matrix)
-np.savetxt(f'output/distance_matrix-{num_nodes}-nodes.txt', distance_matrix, fmt='%d', delimiter=',')
-print(f"Distance matrix saved as distance_matrix-{num_nodes}-nodes.txt")
-
-# Measure time for ACO
-start_time = time.time()
-aco = AntColony(distance_matrix, n_ants=5, n_best=2, n_iterations=50, decay=0.95, alpha=1, beta=1, verbose=0)
-aco_best_path, best_distance = aco.run()
-aco_duration = time.time() - start_time
-aco_distance = calculate_distance(distance_matrix, aco_best_path)
-print("ACO Best path:", aco_best_path)
-print("ACO Best distance:", aco_distance)
-print(f"ACO Duration: {aco_duration:.4f} seconds")
-#print("ACO History Length:", len(aco.paths_history))
-# i = 0
-# for pheromone_matrix in aco.pheromone_history:
-#     print(f"Pheromone matrix {i}:\n{pheromone_matrix}")
-#     i += 1
-
-
-
-# Measure time for brute-force TSP
-# start_time = time.time()
-# tsp_best_path, tsp_best_distance = brute_force_tsp(distance_matrix)
-# tsp_duration = time.time() - start_time
-# tsp_distance = calculate_distance(distance_matrix, tsp_best_path)
-# print("TSP Best path:", tsp_best_path)
-# print("TSP Best distance:", tsp_best_distance)
-# print(f"TSP Duration: {tsp_duration:.4f} seconds")
-
-
-
-# Run the animated visualizer
-#animate_aco_paths(aco, interval=100)
+    # Measure time for ACO
+    start_time = time.time()
+    aco = AntColony(distance_matrix, n_ants=n_ants, n_best=n_best, n_iterations=n_iterations, decay=decay, alpha=alpha, beta=beta, verbose=verbose)
+    aco_best_path, best_distance = aco.run()
+    aco_duration = time.time() - start_time
+    aco_distance = calculate_distance(distance_matrix, aco_best_path)
+    print("ACO Best path:", aco_best_path)
+    print("ACO Best distance:", aco_distance)
+    print(f"ACO Duration: {aco_duration:.4f} seconds")
+    
+    # Assuming `distance_matrix` is defined and `solution_path` is a list of node indices in the optimal order
+    #visualize_solution_path(distance_matrix, aco_best_path)
+    
+    # Measure time for brute-force TSP
+    if bruteforce:
+        bruteforce_start_time = time.time()
+        tsp_best_path, tsp_best_distance = brute_force_tsp(distance_matrix)
+        tsp_duration = time.time() - bruteforce_start_time
+        #tsp_distance = calculate_distance(distance_matrix, tsp_best_path)
+        if visualize:
+            visualize_solution_path(distance_matrix, tsp_best_path)
+        print("TSP Best path:", tsp_best_path)
+        print("TSP Best distance:", tsp_best_distance)
+        print(f"TSP Duration: {tsp_duration:.4f} seconds")
 
 
-# Example usage
-# Assuming `distance_matrix` is defined and `solution_path` is a list of node indices in the optimal order
-#visualize_solution_path(distance_matrix, aco_best_path)
-
-#visualize_solution_path(distance_matrix, tsp_best_path)
-# Run the visualizer
-#visualize_aco(aco, path_index=5)
-
-
-
-# Run the animated visualizer
-animate_pheromone_history(aco, interval=1)
-animate_best_path(aco, interval=100)
-#print(aco.pheromone_history[0])
-#print(aco.pheromone_history[len(aco.pheromone_history)-1])
-animate_paths_history(aco, interval=250)
-print(aco.paths_history)
-#print(aco.paths_history[len(aco.paths_history)-1])
+    if visualize:
+        # Run the animated visualizer
+        animate_pheromone_history(aco, interval=1)
+        animate_best_path(aco, interval=100)
+        #print(aco.pheromone_history[0])
+        #print(aco.pheromone_history[len(aco.pheromone_history)-1])
+        animate_paths_history(aco, interval=250)
+        #print(aco.paths_history)
+        #print(aco.paths_history[len(aco.paths_history)-1])
+    print("=================")

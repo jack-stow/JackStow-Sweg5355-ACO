@@ -236,10 +236,11 @@ def animate_pheromone_history(aco, interval=1):
         # Draw the edges with color based on pheromone strength
         for u, v in G.edges():
             pheromone_strength = pheromone_matrix[u, v]
-            color = cmap(norm(pheromone_strength))  # Map pheromone strength to color
+            pheromone_normalized = norm(pheromone_strength)
+            color = cmap(pheromone_normalized)  # Map pheromone strength to color
             ax.plot([pos[u][0], pos[v][0]], 
                     [pos[u][1], pos[v][1]], 
-                    color=color, linewidth=2, alpha=0.8)
+                    color=color, linewidth=5*max(.1, pheromone_normalized), alpha=0.8)
         
         # Set title for the current iteration
         ax.set_title(f'Pheromone Evolution - Iteration {frame}')
