@@ -1,88 +1,123 @@
-import numpy as np
-import random
-import matplotlib.pyplot as plt
-import networkx as nx
-import matplotlib.cm as cm
-import itertools
-import time
-from matplotlib.colors import Normalize
-from matplotlib.animation import FuncAnimation
+import numpy as np  # For numerical operations
+import random  # For generating random numbers
+import matplotlib.pyplot as plt  # For visualization
+import networkx as nx  # For creating and visualizing graphs
+import matplotlib.cm as cm  # For colormaps in visualizations
+import itertools  # For generating permutations (used in brute-force TSP)
+import time  # For measuring execution time
+from matplotlib.colors import Normalize  # For normalizing color values
+from matplotlib.animation import FuncAnimation  # For creating animations
 
+# Seed for consistent graph layout visualization
 NETWORK_SEED = 42
 
-# Modify this function to generate a random distance matrix
+# Generate a random distance matrix for the Traveling Salesman Problem (TSP)
 def generate_distance_matrix(num_nodes):
-    # Generate a random distance matrix with values between 1 and 20
-    distance_matrix = np.random.randint(1, 20, size=(num_nodes, num_nodes))
-    # Set the diagonal to zero (distance from a node to itself)
-    np.fill_diagonal(distance_matrix, 0)
+    """
+    Creates a symmetric distance matrix where each entry represents the distance
+    between two nodes, and the diagonal entries are zero (distance to itself).
+    """
+    distance_matrix = np.random.randint(1, 20, size=(num_nodes, num_nodes))  # Random distances [1, 20)
+    np.fill_diagonal(distance_matrix, 0)  # Set diagonal to 0 (distance to self)
     return distance_matrix
 
 class AntColony:
+    """
+    Class implementing the Ant Colony Optimization (ACO) algorithm for solving the TSP.
+    """
     def __init__(self, distance_matrix, n_ants, n_best, n_iterations, decay, alpha=1, beta=1):
+        """
+        Initialize the ACO parameters and data structures.
+
+        Parameters:
+        - distance_matrix: The distance matrix for the TSP.
+        - n_ants: Number of ants in the simulation.
+        - n_best: Number of best-performing ants contributing pheromones.
+        - n_iterations: Number of iterations to run the simulation.
+        - decay: Evaporation rate of pheromones.
+        - alpha: Pheromone importance factor.
+        - beta: Heuristic importance factor.
+        """
         self.distance_matrix = distance_matrix
-        self.pheromone_matrix = np.ones_like(distance_matrix, dtype=float)  # Initialize as float matrix
+        self.pheromone_matrix = np.ones_like(distance_matrix, dtype=float)  # Initial pheromone levels
         self.n_ants = n_ants
         self.n_best = n_best
         self.n_iterations = n_iterations
         self.decay = decay
         self.alpha = alpha
         self.beta = beta
-        self.pheromone = np.ones(distance_matrix.shape, dtype=float) / len(distance_matrix)
-        self.best_path = None
-        self.best_distance = float('inf')
-        self.paths_history = []
+        self.pheromone = np.ones(distance_matrix.shape, dtype=float) / len(distance_matrix)  # Normalized pheromones
+        self.best_path = None  # Best path found
+        self.best_distance = float('inf')  # Best distance found (initialize to infinity)
+        self.paths_history = []  # History of paths generated
 
     def get_pheromone_level(self, path):
+        """
+        Get the minimum pheromone level along the given path.
+        """
         pheromone_strengths = [
             self.pheromone_matrix[path[i], path[i + 1]] for i in range(len(path) - 1)
         ]
-        return min(pheromone_strengths) #type: ignore
+        return min(pheromone_strengths)
 
     def run(self):
+        """
+        Run the ACO algorithm for the specified number of iterations.
+        """
         for iteration in range(self.n_iterations):
-            all_paths = self.gen_all_paths()
-            #if iteration % 5 == 0:  # Save only every 5th iteration for visualization
-            self.paths_history.append(all_paths)
+            all_paths = self.gen_all_paths()  # Generate paths for all ants
+            self.paths_history.append(all_paths)  # Save paths for visualization
             self.best_path, self.best_distance = self.spread_pheromone(all_paths, self.best_path, self.best_distance)
-            self.pheromone *= self.decay  # Evaporation
+            self.pheromone *= self.decay  # Apply pheromone evaporation
 
         return self.best_path, self.best_distance
 
     def spread_pheromone(self, all_paths, best_path, best_distance):
+        """
+        Update pheromone levels based on the paths generated in the current iteration.
+        """
         for path in all_paths:
             distance = self.calculate_distance(path)
-            if distance < best_distance:
+            if distance < best_distance:  # Update best path if a shorter one is found
                 best_distance = distance
                 best_path = path
             
-            for i in range(len(path) - 1):
+            for i in range(len(path) - 1):  # Add pheromone to the edges in the path
                 self.pheromone[path[i], path[i + 1]] += 1.0 / distance
 
         return best_path, best_distance
 
     def calculate_distance(self, path):
+        """
+        Calculate the total distance of a given path.
+        """
         return sum(self.distance_matrix[path[i], path[i + 1]] for i in range(len(path) - 1))
 
     def gen_all_paths(self):
+        """
+        Generate paths for all ants in the colony.
+        """
         all_paths = []
         for _ in range(self.n_ants):
-            path = self.gen_path()
+            path = self.gen_path()  # Generate a path for an individual ant
             if len(path) == len(self.distance_matrix):  # Ensure all nodes are visited
                 all_paths.append(path)
         return all_paths
 
     def gen_path(self):
+        """
+        Generate a path for a single ant using probabilistic rules.
+        """
         n_nodes = len(self.distance_matrix)
         path = []
-        visited = set()
-        current_node = random.randint(0, n_nodes - 1)
+        visited = set()  # Track visited nodes
+        current_node = random.randint(0, n_nodes - 1)  # Start at a random node
         path.append(current_node)
         visited.add(current_node)
 
         while len(path) < n_nodes:
-            probabilities = self.calculate_probabilities(current_node, visited)
-            next_node = int(np.random.choice(range(n_nodes), p=probabilities))
+            probabilities = self.calculate_probabilities(current_node, visited)  # Calculate probabilities for next node
+            next_node = int(np.random.choice(range(n_nodes), p=probabilities))  # Choose next node
             path.append(next_node)
             visited.add(next_node)
             current_node = next_node
@@ -90,15 +125,30 @@ class AntColony:
         return path
 
     def calculate_probabilities(self, current_node, visited):
+        """
+        Calculate the probabilities for choosing the next node based on pheromone levels and heuristic information.
+        """
         pheromone = self.pheromone[current_node].copy()
         visited_indices = list(visited)
-        pheromone[visited_indices] = 0  # Remove visited nodes
-        heuristic = 1 / (self.distance_matrix[current_node] + 1e-10)
-        probabilities = (pheromone ** self.alpha) * (heuristic ** self.beta)
+        pheromone[visited_indices] = 0  # Exclude visited nodes
+        heuristic = 1 / (self.distance_matrix[current_node] + 1e-10)  # Heuristic: inverse of distance
+        probabilities = (pheromone ** self.alpha) * (heuristic ** self.beta)  # Combine pheromone and heuristic factors
         return probabilities / probabilities.sum()
 
 # Visualization Function
 def visualize_aco(aco, path_index=0):
+    """
+    Visualizes a specific iteration of paths discovered by the Ant Colony Optimization algorithm.
+
+    Parameters:
+        aco (AntColony): The Ant Colony instance containing the distance matrix and pheromone matrix.
+        path_index (int): The iteration index to visualize the paths from.
+
+    Functionality:
+        - Creates a graph visualization with nodes and edges.
+        - Uses a color gradient to represent pheromone strength on edges.
+        - Highlights the paths explored by ants at a specific iteration.
+    """
     G = nx.from_numpy_array(aco.distance_matrix)
     fig, ax = plt.subplots(figsize=(10, 8))
     pos = nx.spring_layout(G, seed=NETWORK_SEED)
@@ -129,6 +179,20 @@ def visualize_aco(aco, path_index=0):
 
 # Brute-force TSP function
 def brute_force_tsp(distance_matrix):
+    """
+    Solves the Traveling Salesperson Problem using a brute-force approach.
+
+    Parameters:
+        distance_matrix (numpy.ndarray): A matrix where the entry (i, j) represents the distance between node i and node j.
+
+    Returns:
+        tuple: A tuple containing the best path as a list of node indices and the total distance of this path.
+
+    Functionality:
+        - Iterates through all permutations of nodes.
+        - Calculates the total distance for each path.
+        - Keeps track of the shortest path and its corresponding distance.
+    """
     num_nodes = len(distance_matrix)
     all_nodes = range(num_nodes)
     
@@ -151,6 +215,20 @@ def brute_force_tsp(distance_matrix):
 
 
 def calculate_distance(distance_matrix, path):
+    """
+    Calculates the total distance of a given path.
+
+    Parameters:
+        distance_matrix (numpy.ndarray): A matrix where the entry (i, j) represents the distance between node i and node j.
+        path (list): A list of node indices representing the path.
+
+    Returns:
+        float: The total distance of the given path.
+
+    Functionality:
+        - Sums distances for consecutive nodes in the path.
+        - Includes the distance from the last node back to the first to form a complete tour.
+    """
     distance = sum(distance_matrix[path[i], path[i + 1]] for i in range(len(path) - 1))
     distance += distance_matrix[path[-1], path[0]]  # Return to the starting node
     return distance
@@ -190,6 +268,18 @@ print("ACO History Length:", len(aco.paths_history))
 
 # Visualization Function with Color Gradient
 def animate_aco_paths(aco, interval):
+    """
+    Animates the paths discovered by the Ant Colony Optimization algorithm over iterations.
+
+    Parameters:
+        aco (AntColony): The Ant Colony instance containing the paths history and distance matrix.
+        interval (int): Time interval between frames in milliseconds.
+
+    Functionality:
+        - Creates an animated visualization of the paths discovered over iterations.
+        - Highlights the evolution of paths and pheromone strength using color gradients.
+        - Updates the graph frame by frame with edges being drawn based on the paths history.
+    """
     G = nx.from_numpy_array(aco.distance_matrix)
     fig, ax = plt.subplots(figsize=(10, 8))
     pos = nx.spring_layout(G, seed=NETWORK_SEED)
@@ -232,6 +322,18 @@ def animate_aco_paths(aco, interval):
 
 # Visualization Function for a Static Path with Color Gradient
 def visualize_solution_path(distance_matrix, solution_path):
+    """
+    Visualizes a static Traveling Salesperson Problem solution path.
+
+    Parameters:
+        distance_matrix (numpy.ndarray): A matrix where the entry (i, j) represents the distance between node i and node j.
+        solution_path (list): A list of node indices representing the solution path.
+
+    Functionality:
+        - Draws a graph with nodes and edges.
+        - Uses a color gradient to differentiate edges in the solution path.
+        - Connects the last node back to the first to form a complete cycle.
+    """
     G = nx.from_numpy_array(distance_matrix)
     fig, ax = plt.subplots(figsize=(10, 8))
     pos = nx.spring_layout(G, seed=NETWORK_SEED)
@@ -278,6 +380,18 @@ def visualize_solution_path(distance_matrix, solution_path):
 
 
 def animate_best_path(aco, interval):
+    """
+    Animates the best path discovered by the Ant Colony Optimization algorithm.
+
+    Parameters:
+        aco (AntColony): The Ant Colony instance containing the best path and distance matrix.
+        interval (int): Time interval between frames in milliseconds.
+
+    Functionality:
+        - Creates an animation of the best path being constructed step by step.
+        - Highlights each edge in the path sequentially with a color gradient.
+        - Updates the graph frame by frame with edges being drawn up to the current step.
+    """
     G = nx.from_numpy_array(aco.distance_matrix)
     fig, ax = plt.subplots(figsize=(10, 8))
     pos = nx.spring_layout(G, seed=NETWORK_SEED)
