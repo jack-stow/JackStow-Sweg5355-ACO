@@ -33,13 +33,9 @@ def ACO_demo(distance_matrix=None, num_nodes=20, n_ants=10, n_best=2, n_iteratio
     
     if visualize:
         # Run the animated visualizer
-        animate_pheromone_history(aco, step=step, interval=interval)
         animate_best_path(aco, interval=interval)
-        #print(aco.pheromone_history[0])
-        #print(aco.pheromone_history[len(aco.pheromone_history)-1])
+        animate_pheromone_history(aco, step=step, interval=interval)
         animate_paths_history(aco, step=step, interval=interval)
-        #print(aco.paths_history)
-        #print(aco.paths_history[len(aco.paths_history)-1])
     print("=================")
     
 def TSP_brute_force_demo(distance_matrix=None, num_nodes=20, visualize=True):
@@ -90,69 +86,18 @@ def TSP_brute_force_demo(distance_matrix=None, num_nodes=20, visualize=True):
 # Higher alpha (2-3): more emphasis on previous successful paths
 # Higher beta (3-5): stronger preference for shorter routes
 
+# generate_distance_matrix will generate a random graph with n nodes. 
 #distance_matrix = generate_distance_matrix(50)
-distance_matrix = generate_distance_matrix_from_file("output/distance_matrix-100-nodes.txt")
+#generate_distance_matrix_from_file will open a pre-generated graph
+distance_matrix = generate_distance_matrix_from_file("output/distance_matrix-50-nodes.txt")
 num_nodes = distance_matrix.shape[0]
-# ACO_demo(
-#     distance_matrix=distance_matrix, 
-#     num_nodes=num_nodes, 
-#     n_ants=1, 
-#     n_best=1, 
-#     n_iterations=20, 
-#     decay=0.9, 
-#     alpha=1, 
-#     beta=1, 
-#     verbose=1, 
-#     visualize=False
-#     )
-
-# ACO_demo(
-#     distance_matrix=distance_matrix, 
-#     num_nodes=num_nodes, 
-#     n_ants=10, 
-#     n_best=2, 
-#     n_iterations=100, 
-#     decay=0.5, 
-#     alpha=2, 
-#     beta=3, 
-#     verbose=1, 
-#     visualize=False
-#     )
-
-# ACO_demo(
-#     distance_matrix=distance_matrix, 
-#     num_nodes=num_nodes, 
-#     n_ants=20, 
-#     n_best=10, 
-#     n_iterations=100, 
-#     decay=0.5, 
-#     alpha=5, 
-#     beta=5, 
-#     verbose=1, 
-#     visualize=False
-#     )
-
-# ACO_demo(
-#     distance_matrix=distance_matrix, 
-#     num_nodes=num_nodes, 
-#     n_ants=50, 
-#     n_best=10, 
-#     n_iterations=250, 
-#     decay=0.75, 
-#     alpha=5, 
-#     beta=5, 
-#     verbose=1, 
-#     visualize=False,
-#     step=5,
-#     interval=100
-#     )
 
 ACO_demo(
     distance_matrix=distance_matrix, 
     num_nodes=num_nodes, 
-    n_ants=30, 
-    n_best=10, 
-    n_iterations=250, 
+    n_ants=15, 
+    n_best=5, 
+    n_iterations=125, 
     decay=0.75, 
     alpha=5, 
     beta=5, 
@@ -162,24 +107,3 @@ ACO_demo(
     interval=50
     )
 
-
-# ACO_demo(
-#     distance_matrix=distance_matrix, 
-#     num_nodes=num_nodes, 
-#     n_ants=25, 
-#     n_best=5, 
-#     n_iterations=125, 
-#     decay=0.75, 
-#     alpha=5, 
-#     beta=5, 
-#     verbose=1, 
-#     visualize=True,
-#     step=10,
-#     interval=50
-#     )
-
-# TSP_brute_force_demo(
-#     distance_matrix=distance_matrix, 
-#     num_nodes=num_nodes,
-#     visualize=False
-#     )

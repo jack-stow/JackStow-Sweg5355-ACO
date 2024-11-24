@@ -198,7 +198,7 @@ def animate_best_path(aco, interval):
         # Add title with current frame number
         ax.set_title(f'ACO Path Animation - Step {frame + 1}/{num_edges}')
 
-    ani = FuncAnimation(fig, update, frames=num_edges, repeat=False, interval=interval) #type: ignore
+    ani = FuncAnimation(fig, update, frames=num_edges, repeat=True, interval=interval) #type: ignore
     plt.show()
 
 def animate_pheromone_history(aco, interval=1, step=1):
