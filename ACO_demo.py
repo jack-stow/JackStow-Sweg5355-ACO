@@ -132,35 +132,51 @@ num_nodes = distance_matrix.shape[0]
 #     visualize=False
 #     )
 
+# ACO_demo(
+#     distance_matrix=distance_matrix, 
+#     num_nodes=num_nodes, 
+#     n_ants=50, 
+#     n_best=10, 
+#     n_iterations=250, 
+#     decay=0.75, 
+#     alpha=5, 
+#     beta=5, 
+#     verbose=1, 
+#     visualize=False,
+#     step=5,
+#     interval=100
+#     )
+
 ACO_demo(
     distance_matrix=distance_matrix, 
     num_nodes=num_nodes, 
-    n_ants=50, 
+    n_ants=30, 
     n_best=10, 
     n_iterations=250, 
     decay=0.75, 
     alpha=5, 
     beta=5, 
     verbose=1, 
-    visualize=False,
-    step=5,
-    interval=100
+    visualize=True,
+    step=1,
+    interval=50
     )
 
-ACO_demo(
-    distance_matrix=distance_matrix, 
-    num_nodes=num_nodes, 
-    n_ants=50, 
-    n_best=10, 
-    n_iterations=250, 
-    decay=0.5, 
-    alpha=5, 
-    beta=5, 
-    verbose=1, 
-    visualize=False,
-    step=5,
-    interval=100
-    )
+
+# ACO_demo(
+#     distance_matrix=distance_matrix, 
+#     num_nodes=num_nodes, 
+#     n_ants=25, 
+#     n_best=5, 
+#     n_iterations=125, 
+#     decay=0.75, 
+#     alpha=5, 
+#     beta=5, 
+#     verbose=1, 
+#     visualize=True,
+#     step=10,
+#     interval=50
+#     )
 
 # TSP_brute_force_demo(
 #     distance_matrix=distance_matrix, 

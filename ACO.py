@@ -164,6 +164,8 @@ class AntColony:
         if self.verbose > 1:
             print(f"Current Node: {current_node}, Probabilities: {probabilities}")
 
+        test = probabilities / probabilities.sum()
+        # TODO: if evaporation is too high, probabilities.sum() is 0, so you get NaN. fix this edge case.
         return probabilities / probabilities.sum()
 
 
