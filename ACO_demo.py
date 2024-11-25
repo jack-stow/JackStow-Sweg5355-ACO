@@ -5,10 +5,29 @@ import numpy as np  # For numerical operations
 from TSP_bruteforce import brute_force_tsp
 
 def ACO_demo(distance_matrix=None, num_nodes=20, n_ants=10, n_best=2, n_iterations=100, decay=0.5, alpha=2, beta=3, verbose=0, visualize=True, step=1, interval=100, save_matrix = False, threshold=0):
+    """
+        Parameters:
+        - distance_matrix: The distance matrix for the TSP. if not provided, one will be generated based on num_nodes
+        - num_nodes: the number of nodes to be generated in the matrix. this number is only considered if distance_matrix is None
+        - n_ants: Number of ants in the simulation.
+        - n_best: Number of best-performing ants contributing pheromones.
+        - n_iterations: Number of iterations to run the simulation.
+        - decay: Evaporation rate of pheromones.
+        - alpha: Pheromone importance factor.
+        - beta: Heuristic importance factor.
+        - verbose: prints debugging info when verbose>0 (i dont think i made it behave different for different values.)
+        - visualizer: whether or not the visualizer should be displayed
+        - step: set to 1 to just display each iteration. increase the value to skip iterations (good for high n_iterations values)
+        - interval: how long each step should be displayed in the visualizer
+        - save_matrix: whether the matrix should be saved to the output folder.
+        - threshold: make ACO start over until it finds a route that hits this target. WARNING: this may run forever. it's literally just a while loop that exits if it finds a route shorter than the threshold.
+    """
+
     # Example usage
     #num_nodes = 20  # Keep this small for brute force
     # distance_matrix = np.loadtxt('distance_matrix.txt', delimiter=',')#generate_distance_matrix(num_nodes)
     
+    print("="*100)
     if verbose > 0:
         print(f"num_nodes={num_nodes}, n_ants={n_ants}, n_best={n_best}, n_iterations={n_iterations}, decay={decay}, alpha={alpha}, beta={beta}")
     if distance_matrix is None:
@@ -19,7 +38,6 @@ def ACO_demo(distance_matrix=None, num_nodes=20, n_ants=10, n_best=2, n_iteratio
         print(f"Distance matrix saved as distance_matrix-{num_nodes}-nodes.txt")
 
     if threshold == 0:
-        print("="*100)
         # Measure time for ACO
         start_time = time.time()
         aco = AntColony(distance_matrix, n_ants=n_ants, n_best=n_best, n_iterations=n_iterations, decay=decay, alpha=alpha, beta=beta, verbose=verbose)
@@ -63,12 +81,13 @@ def TSP_brute_force_demo(distance_matrix=None, num_nodes=20, visualize=False):
     tsp_best_path, tsp_best_distance = brute_force_tsp(distance_matrix)
     tsp_duration = time.time() - bruteforce_start_time
     #tsp_distance = calculate_distance(distance_matrix, tsp_best_path)
-    if visualize:
-        visualize_solution_path(distance_matrix, tsp_best_path)
     print("TSP Best path:", tsp_best_path)
     print("TSP Best distance:", tsp_best_distance)
     print(f"TSP Duration: {tsp_duration:.4f} seconds")
     print("="*100)
+    
+    if visualize:
+        visualize_solution_path(distance_matrix, tsp_best_path)
 
 
 # Parameter tuning for ACO depends on graph size and complexity, but here are some general guidelines:
@@ -105,50 +124,40 @@ def TSP_brute_force_demo(distance_matrix=None, num_nodes=20, visualize=False):
 # generate_distance_matrix will generate a random graph with n nodes. 
 #distance_matrix = generate_distance_matrix(50)
 #generate_distance_matrix_from_file will open a pre-generated graph
-distance_matrix = generate_distance_matrix_from_file("output/distance_matrix-10-nodes.txt")
+distance_matrix = generate_distance_matrix_from_file("output/distance_matrix-50-nodes.txt")
 num_nodes = distance_matrix.shape[0]
 # num_nodes = 14
 # distance_matrix = generate_distance_matrix(num_nodes=num_nodes)
-print("="*100)
+#print("="*100)
 # 10-node matrix shortest path is 31. 
 # 11-node matrix shortest path is 36, takes 80.4 seconds
 # 12-node matrix shortest path is 33, takes 1096.5 seconds
 # 13-node matrix would take nearly 4 hours to brute force. shortest path i've gotten: 26 in 0.0414 seconds, [ 0  4 10  6  9  5  1 11  8 12  7  2  3], num_nodes=13, n_ants=5, n_best=1, n_iterations=25, decay=0.85, alpha=2, beta=4
+# 14-node matrix would take ~55 hours
+# 15-node matrix would take 34.6 days
 #TSP_brute_force_demo(distance_matrix)
 
+
+
+# Demo 1
+# TSP_brute_force_demo(distance_matrix, visualize=True)
 # ACO_demo(
 #     distance_matrix=distance_matrix, 
 #     num_nodes=num_nodes, 
 #     n_ants=5, 
 #     n_best=1, 
-#     n_iterations=25, 
+#     n_iterations=20, 
 #     decay=0.85, 
-#     alpha=2, 
+#     alpha=3, 
 #     beta=4, 
 #     verbose=1, 
-#     visualize=False,
+#     visualize=True,
 #     step=1,
-#     interval=50#, save_matrix=True
+#     interval=300, 
+#     threshold=31
 #     )
-# aco_distance = 26
-# while (aco_distance >= 26):
-#     aco_distance, aco_best_path = ACO_demo(
-#     distance_matrix=distance_matrix, 
-#     num_nodes=num_nodes, 
-#     n_ants=8, 
-#     n_best=1, 
-#     n_iterations=50, 
-#     decay=0.85, 
-#     alpha=2, 
-#     beta=4, 
-#     verbose=1, 
-#     visualize=False,
-#     step=1,
-#     interval=50
-#     )
-# print(f"Distance: {aco_distance}")
 
-# print(f"Best Path: {aco_best_path}")
+# Demo 2
 ACO_demo(
     distance_matrix=distance_matrix, 
     num_nodes=num_nodes, 
@@ -162,21 +171,6 @@ ACO_demo(
     visualize=True,
     step=1,
     interval=150,
-    threshold=30
+    threshold=42 #WARNING: setting a threshold means it will keep looping until it finds a solution of this length. if one doesn't exist, it'll loop forever.
     )
 
-
-# ACO_demo(
-#     distance_matrix=distance_matrix, 
-#     num_nodes=num_nodes, 
-#     n_ants=20, 
-#     n_best=5, 
-#     n_iterations=100, 
-#     decay=0.85, 
-#     alpha=2, 
-#     beta=4, 
-#     verbose=1, 
-#     visualize=False,
-#     step=1,
-#     interval=50
-#     )
