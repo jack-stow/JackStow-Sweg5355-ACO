@@ -119,7 +119,9 @@ class AntColony:
         """
         Calculate the total distance of a given path.
         """
-        return sum(self.distance_matrix[path[i], path[i + 1]] for i in range(len(path) - 1))
+        total_distance = sum(self.distance_matrix[path[i], path[i + 1]] for i in range(len(path) - 1))
+        total_distance += self.distance_matrix[path[-1], path[0]]  # Return to the starting node
+        return total_distance
 
     def gen_all_paths(self):
         """
